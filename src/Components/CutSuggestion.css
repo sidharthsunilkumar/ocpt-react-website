@@ -1,0 +1,245 @@
+/* CutSuggestion.css */
+
+.cut-suggestion-wrapper {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.cut-title {
+    background-color: #f8fafc;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2937;
+    text-transform: capitalize;
+    text-align: left;
+    padding-left: 30px;
+    text-decoration: underline;
+}
+
+.cut-info {
+    display: flex;
+    flex-direction: row;
+    min-height: 400px;
+}
+
+.cut-set-diagram-wrapper {
+    flex: 2;
+    padding: 20px;
+    border-right: 1px solid #e5e7eb;
+}
+
+.graph-container {
+    height: 400px;
+    border: 2px solid #d1d5db;
+    border-radius: 6px;
+    position: relative;
+    overflow: hidden;
+    background-color: #f9fafb;
+}
+
+.cut-cost-info-wrapper {
+    flex: 1;
+    padding: 20px;
+    background-color: #fefefe;
+}
+
+.cut-cost-info {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.cut-cost-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 20px;
+    margin-top: 0;
+}
+
+.edges-section {
+    margin-bottom: 24px;
+}
+
+.edges-section-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 12px;
+    margin-top: 0;
+    text-align: left;
+}
+
+.edges-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    font-size: 13px;
+}
+
+.edges-table thead {
+    background-color: #f3f4f6;
+}
+
+.edges-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 500;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.edges-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.edge-row {
+    transition: background-color 0.2s ease;
+}
+
+.edge-row:hover {
+    background-color: #f9fafb;
+}
+
+.edge-add {
+    border-left: 3px solid #10b981;
+}
+
+.edge-remove {
+    border-left: 3px solid #ef4444;
+}
+
+.edge-source,
+.edge-target {
+    color: #4b5563;
+    font-family: monospace;
+    font-size: 12px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    
+}
+
+.edge-cost {
+    color: #1f2937;
+    font-weight: 500;
+    text-align: right;
+}
+
+.total-cost-section {
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.total-cost {
+    background-color: #f0f9ff;
+    padding: 16px;
+    border-radius: 6px;
+    border: 1px solid #bae6fd;
+    color: #0c4a6e;
+    font-size: 14px;
+    text-align: center;
+}
+
+.cut-select {
+    padding: 16px 20px;
+    background-color: #f8fafc;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .cut-info {
+        flex-direction: column;
+    }
+    
+    .cut-set-diagram-wrapper {
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .graph-container {
+        height: 300px;
+    }
+    
+    .edges-table {
+        font-size: 12px;
+    }
+    
+    .edges-table th,
+    .edges-table td {
+        padding: 6px 8px;
+    }
+    
+    .edge-source,
+    .edge-target {
+        max-width: 80px;
+    }
+}
+
+/* Empty state styles */
+.edges-section:empty::after {
+    content: "No edges to process";
+    color: #9ca3af;
+    font-style: italic;
+    font-size: 12px;
+}
+
+/* Animation for tables */
+.edges-table tbody tr {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.select-cut-btn {
+    padding: 12px 32px;
+    background: linear-gradient(90deg, #3e76ed 0%, #3b55ad 100%);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.08);
+    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    outline: none;
+    margin-top: 10px;
+}
+
+.select-cut-btn:hover,
+.select-cut-btn:focus {
+    background: linear-gradient(90deg, #3b55ad 0%, #3e76ed 100%);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15);
+}
+
+.select-cut-btn:active {
+    background: #1e3a8a;
+    transform: scale(0.98);
+}
