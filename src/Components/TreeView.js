@@ -20,7 +20,7 @@ const CustomNode = ({ data }) => {
         return { backgroundColor: '#10b981', color: 'white' };
       case 'exclusive': 
         return { backgroundColor: '#ef4444', color: 'white' };
-      case 'xor': 
+      case 'redo': 
         return { backgroundColor: '#f59e0b', color: 'white' };
       case 'flower': 
         return { backgroundColor: '#fbbf24', color: 'black' };
@@ -34,7 +34,7 @@ const CustomNode = ({ data }) => {
       case 'sequence': return 'Sequence →';
       case 'parallel': return 'Parallel ∥';
       case 'exclusive': return 'Exclusive ⊗';
-      case 'xor': return 'XOR ⊕';
+      case 'redo': return 'Redo ↻';
       default: return label;
     }
   };
@@ -49,11 +49,13 @@ const CustomNode = ({ data }) => {
         padding: '10px',
         borderRadius: '8px',
         border: '2px solid #333',
-        minWidth: '120px', // Same width for both flower and normal nodes
+        width: '140px', // Fixed width for all nodes
         textAlign: 'center',
         fontSize: '12px',
         fontWeight: 'bold',
-        position: 'relative'
+        position: 'relative',
+        wordWrap: 'break-word',
+        overflow: 'hidden'
       }}
     >
       <Handle
@@ -63,15 +65,17 @@ const CustomNode = ({ data }) => {
       />
       {isFlower ? (
         <div>
-          <div style={{ marginBottom: '8px' }}>Flower Model</div>
-          <div style={{ fontSize: '10px', lineHeight: '1.2' }}>
+          <div style={{ marginBottom: '8px', wordWrap: 'break-word' }}>Flower Model</div>
+          <div style={{ fontSize: '10px', lineHeight: '1.2', wordWrap: 'break-word' }}>
             {data.children.map((child, index) => (
-              <div key={index}>{child}</div>
+              <div key={index} style={{ wordWrap: 'break-word' }}>{child}</div>
             ))}
           </div>
         </div>
       ) : (
-        getNodeLabel(data.originalLabel)
+        <div style={{ wordWrap: 'break-word' }}>
+          {getNodeLabel(data.originalLabel)}
+        </div>
       )}
       <Handle
         type="source"
