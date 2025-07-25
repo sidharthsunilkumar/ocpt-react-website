@@ -91,17 +91,29 @@ const nodeTypes = {
 };
 
 export default function TreeView({ data }) {
+  // Store parent-child relationships for hierarchical dragging
+  const [nodeHierarchy, setNodeHierarchy] = React.useState({});
+  
   // Transform OCPT data to React Flow format
   const transformToReactFlowFormat = (ocptData) => {
-    if (!ocptData || !ocptData.length) return { nodes: [], edges: [] };
+    if (!ocptData || !ocptData.length) return { nodes: [], edges: [], hierarchy: {} };
     
     const nodes = [];
     const edges = [];
+    const hierarchy = {}; // Track parent-child relationships
     let nodeId = 0;
     
     // Simple positioning algorithm
     const processNode = (node, parentId = null, depth = 0, siblingIndex = 0, totalSiblings = 1, parentX = 400) => {
       const currentNodeId = `node-${nodeId++}`;
+      
+      // Track parent-child relationships
+      if (parentId) {
+        if (!hierarchy[parentId]) {
+          hierarchy[parentId] = [];
+        }
+        hierarchy[parentId].push(currentNodeId);
+      }
       
       // Compact spacing settings
       const minHorizontalSpacing = 180; // Minimum space between siblings
@@ -195,13 +207,14 @@ export default function TreeView({ data }) {
     // Start processing from root
     processNode(data[0]);
     
-    return { nodes, edges };
+    return { nodes, edges, hierarchy };
   };
   
   const flowData = useMemo(() => {
     const result = transformToReactFlowFormat(data);
     console.log('Generated nodes:', result.nodes);
     console.log('Generated edges:', result.edges);
+    console.log('Node hierarchy:', result.hierarchy);
     return result;
   }, [data]);
   
@@ -212,7 +225,70 @@ export default function TreeView({ data }) {
   React.useEffect(() => {
     setNodes(flowData.nodes);
     setEdges(flowData.edges);
+    setNodeHierarchy(flowData.hierarchy || {});
   }, [flowData, setNodes, setEdges]);
+  
+  // Function to get all descendants of a node
+  const getAllDescendants = (nodeId, hierarchy) => {
+    const descendants = [];
+    const children = hierarchy[nodeId] || [];
+    
+    for (const child of children) {
+      descendants.push(child);
+      descendants.push(...getAllDescendants(child, hierarchy));
+    }
+    
+    return descendants;
+  };
+  
+  // Custom node change handler for hierarchical dragging
+  const onNodesChangeHandler = React.useCallback((changes) => {
+    const moveChanges = changes.filter(change => change.type === 'position' && change.position);
+    const otherChanges = changes.filter(change => change.type !== 'position' || !change.position);
+    
+    if (moveChanges.length > 0) {
+      setNodes((currentNodes) => {
+        const updatedNodes = [...currentNodes];
+        const nodeMap = new Map(updatedNodes.map(node => [node.id, node]));
+        const processedNodes = new Set();
+        
+        moveChanges.forEach(change => {
+          if (processedNodes.has(change.id)) return;
+          
+          const movingNode = nodeMap.get(change.id);
+          if (!movingNode) return;
+          
+          // Calculate the delta
+          const deltaX = change.position.x - movingNode.position.x;
+          const deltaY = change.position.y - movingNode.position.y;
+          
+          // Update the moving node
+          movingNode.position = { ...change.position };
+          processedNodes.add(change.id);
+          
+          // Get all descendants and move them
+          const descendants = getAllDescendants(change.id, nodeHierarchy);
+          descendants.forEach(descendantId => {
+            const descendantNode = nodeMap.get(descendantId);
+            if (descendantNode && !processedNodes.has(descendantId)) {
+              descendantNode.position = {
+                x: descendantNode.position.x + deltaX,
+                y: descendantNode.position.y + deltaY
+              };
+              processedNodes.add(descendantId);
+            }
+          });
+        });
+        
+        return updatedNodes;
+      });
+    }
+    
+    // Handle other changes normally
+    if (otherChanges.length > 0) {
+      onNodesChange(otherChanges);
+    }
+  }, [nodeHierarchy, onNodesChange]);
   
   if (!data || !data.length) {
     return <div>No tree data available</div>;
@@ -223,7 +299,7 @@ export default function TreeView({ data }) {
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={onNodesChangeHandler}
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
