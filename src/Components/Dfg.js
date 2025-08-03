@@ -14,14 +14,14 @@ export default function Dfg() {
     const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
 
     useEffect(() => {
-        axios.get('http://localhost:1080/')
+        axios.get('http://localhost:1080/dfg')
             .then(response => {
                 console.log(response.data);
                 // Assuming response.data is { nodes: {...}, edges: {...} }
                 // But GraphCanvas expects arrays, so convert if needed
                 // If nodes and edges are objects, convert to arrays like below:
-                const nodesArray = Object.values(response.data.dfg.nodes || {});
-                const edgesArray = Object.values(response.data.dfg.edges || {});
+                const nodesArray = Object.values(response.data.nodes || {});
+                const edgesArray = Object.values(response.data.edges || {});
                 setGraphData({ nodes: nodesArray, edges: edgesArray });
             })
             .catch(err => {
@@ -35,7 +35,7 @@ export default function Dfg() {
             <br /><br /><br />
 
             {/* get data from api */}
-            {/* <DirectedGraphV2 dfgNodes={graphData.nodes} dfgEdges={graphData.edges}/> */}
+            <DirectedGraphV2 dfgNodes={graphData.nodes} dfgEdges={graphData.edges}/>
 
             {/* sample data you usually get from api */}
             {/* <DirectedGraphV2example /> */}
@@ -45,9 +45,9 @@ export default function Dfg() {
 
 
             {/* simple cluster example for testing */}
-            <div className="cluster-wrapper">
+            {/* <div className="cluster-wrapper">
                 <DirectedGraphV2clusterexample/>
-            </div>
+            </div> */}
             {/* <DirectedGraphV2clusterexample/> */}
         </div>
     );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './CutSuggestion.css';
-import { GraphCanvas, lightTheme } from "reagraph";
+import { GraphCanvas, lightTheme, CustomLayoutInputs, NodePositionArgs } from "reagraph";
 
 export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected }) {
 
@@ -146,6 +146,41 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
 
     const data = transformData(cutSuggestion, dfg);
     const { edgesToAdd, edgesToRemove } = prepareEdgesData();
+
+    // Custom layout function to position clusters
+    const getNodePosition = (id, { nodes }) => {
+        const node = nodes.find(n => n.id === id);
+        const nodeIndex = nodes.findIndex(n => n.id === id);
+        
+        if (!node || !node.type) {
+            return { x: 0, y: 0, z: 1 };
+        }
+
+        // Separate nodes by type
+        const set1Nodes = nodes.filter(n => n.type === 'Set 1');
+        const set2Nodes = nodes.filter(n => n.type === 'set2');
+        
+        const clusterDistance = 300; // Distance between clusters
+        const nodeSpacing = 100; // Distance between nodes within a cluster
+        
+        if (node.type === 'Set 1') {
+            const set1Index = set1Nodes.findIndex(n => n.id === id);
+            return {
+                x: -clusterDistance / 2, // Position Set 1 to the left
+                y: (set1Index - (set1Nodes.length - 1) / 2) * nodeSpacing, // Center vertically
+                z: 1
+            };
+        } else if (node.type === 'set2') {
+            const set2Index = set2Nodes.findIndex(n => n.id === id);
+            return {
+                x: clusterDistance / 2, // Position Set 2 to the right
+                y: (set2Index - (set2Nodes.length - 1) / 2) * nodeSpacing, // Center vertically
+                z: 1
+            };
+        }
+        
+        return { x: 0, y: 0, z: 1 };
+    };
 
     return (
         <div className='cut-suggestion-wrapper'>

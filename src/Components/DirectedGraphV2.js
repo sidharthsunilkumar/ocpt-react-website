@@ -41,8 +41,8 @@ const DirectedGraphV2 = ({ dfgNodes, dfgEdges }) => {
             nodes={nodes}
             edges={edges}
             draggable={true}
-            onNodeClick={handleNodeClick}
-            onEdgeClick={handleEdgeClick}
+            // onNodeClick={handleNodeClick}
+            // onEdgeClick={handleEdgeClick}
         />
     )
 
