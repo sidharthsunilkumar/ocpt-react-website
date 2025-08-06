@@ -2,10 +2,28 @@ import React, { useState, useEffect } from 'react';
 import './CutSuggestion.css';
 import { GraphCanvas, lightTheme, CustomLayoutInputs, NodePositionArgs } from "reagraph";
 
-export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected }) {
+export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected, handleDfgGraphSelection }) {
+
+    // Early validation to prevent rendering with invalid data
+    if (!cutSuggestion || !dfg) {
+        return <div className='cut-suggestion-wrapper'>Invalid data provided</div>;
+    }
+
+    // Additional validation for required properties
+    if (!cutSuggestion.set1 || !cutSuggestion.set2 || 
+        !Array.isArray(cutSuggestion.set1) || !Array.isArray(cutSuggestion.set2)) {
+        console.error('Cut suggestion missing required set1 or set2 arrays');
+        return <div className='cut-suggestion-wrapper'>Invalid cut suggestion data</div>;
+    }
 
     const transformData = (cut, dfg) => {
         if (!cut || !dfg || !dfg.edges) {
+            return { graphNodes: [], graphEdges: [] };
+        }
+
+        // Additional validation for cut data
+        if (!cut.set1 || !cut.set2 || !Array.isArray(cut.set1) || !Array.isArray(cut.set2)) {
+            console.warn('Invalid cut data: set1 or set2 missing or not arrays');
             return { graphNodes: [], graphEdges: [] };
         }
 
@@ -24,14 +42,21 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
         let nodeCounter = 0;
 
         // Process set1 nodes
-        cut.set1.forEach(activity => {
+        cut.set1.forEach((activity, index) => {
+            console.log(`Processing set1 activity ${index}:`, activity);
+            if (!activity) {
+                console.warn(`Skipping invalid set1 activity at index ${index}:`, activity);
+                return; // Skip invalid activities
+            }
+            
             const nodeId = `n-${nodeCounter}`;
             nodeIdMap[activity] = nodeId;
+            console.log(`Creating set1 node: ${activity} -> ${nodeId}`);
 
             graphNodes.push({
                 id: nodeId,
-                label: `Set 1 ${activity}`,
-                fill: '#166534', // Green for set1
+                label: `${activity}`,
+                fill: '#828c41', // Green for set1
                 data: {
                     type: 'Set 1',
                     activity: activity
@@ -42,19 +67,26 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
         });
 
         // Process set2 nodes
-        cut.set2.forEach(activity => {
+        cut.set2.forEach((activity, index) => {
+            console.log(`Processing set2 activity ${index}:`, activity);
+            if (!activity) {
+                console.warn(`Skipping invalid set2 activity at index ${index}:`, activity);
+                return; // Skip invalid activities
+            }
+            
             const nodeId = `n-${nodeCounter}`;
             nodeIdMap[activity] = nodeId;
+            console.log(`Creating set2 node: ${activity} -> ${nodeId}`);
 
             graphNodes.push({
                 id: nodeId,
-                label: `set2 ${activity}`,
+                label: `${activity}`,
                 fill: '#075985', // Blue for set2
                 data: {
-                    type: 'set2',
+                    type: 'Set 2',
                     activity: activity
                 },
-                type: 'set2'
+                type: 'Set 2'
             });
             nodeCounter++;
         });
@@ -65,13 +97,24 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
         const edgesToRemove = new Set();
 
         // Track edges to be added and removed
-        cut.edges_to_be_added.forEach(edge => {
-            edgesToAdd.add(`${edge[0]}-${edge[1]}`);
-        });
+        if (cut.edges_to_be_added) {
+            cut.edges_to_be_added.forEach(edge => {
+                edgesToAdd.add(`${edge[0]}-${edge[1]}`);
+            });
+        }
 
-        cut.edges_to_be_removed.forEach(edge => {
-            edgesToRemove.add(`${edge[0]}-${edge[1]}`);
-        });
+        if (cut.edges_to_be_removed) {
+            cut.edges_to_be_removed.forEach(edge => {
+                edgesToRemove.add(`${edge[0]}-${edge[1]}`);
+            });
+        }
+
+        // Safely get cost_to_add_edge with fallback
+        const costToAddEdge = (typeof cut.cost_to_add_edge === 'number' && 
+                              !isNaN(cut.cost_to_add_edge) && 
+                              isFinite(cut.cost_to_add_edge)) 
+            ? cut.cost_to_add_edge 
+            : 0;
 
         // Process all DFG edges
         dfgEdges.forEach(edge => {
@@ -82,11 +125,13 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
             if (sourceId && targetId) {
                 const edgeKey = `${edge.source}-${edge.target}`;
                 let color = '#6b7280'; // Gray default
-                let cost = edge.cost;
+                let cost = (typeof edge.cost === 'number' && 
+                           !isNaN(edge.cost) && 
+                           isFinite(edge.cost)) ? edge.cost : 0;
 
                 if (edgesToAdd.has(edgeKey)) {
                     color = '#10b981'; // Green for edges to be added
-                    cost = cut.cost_to_add_edge;
+                    cost = costToAddEdge;
                 } else if (edgesToRemove.has(edgeKey)) {
                     color = '#ef4444'; // Red for edges to be removed
                 }
@@ -102,37 +147,94 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
         });
 
         // Add edges that are in edges_to_be_added but not in DFG
-        cut.edges_to_be_added.forEach(edge => {
-            const sourceId = nodeIdMap[edge[0]];
-            const targetId = nodeIdMap[edge[1]];
-            const edgeKey = `${edge[0]}-${edge[1]}`;
+        if (cut.edges_to_be_added) {
+            cut.edges_to_be_added.forEach(edge => {
+                const sourceId = nodeIdMap[edge[0]];
+                const targetId = nodeIdMap[edge[1]];
+                const edgeKey = `${edge[0]}-${edge[1]}`;
 
-            if (sourceId && targetId && !dfgEdgeMap[edgeKey]) {
-                graphEdges.push({
-                    source: sourceId,
-                    target: targetId,
-                    id: `${sourceId}-${targetId}`,
-                    label: cut.cost_to_add_edge.toString(),
-                    fill: '#10b981' // Green for new edges
-                });
-            }
-        });
+                if (sourceId && targetId && !dfgEdgeMap[edgeKey]) {
+                    graphEdges.push({
+                        source: sourceId,
+                        target: targetId,
+                        id: `${sourceId}-${targetId}`,
+                        label: costToAddEdge.toString(),
+                        fill: '#10b981' // Green for new edges
+                    });
+                }
+            });
+        }
 
         return { graphNodes, graphEdges };
     };
 
+    // Function to validate and sanitize graph data
+    const validateGraphData = (data) => {
+        if (!data || !data.graphNodes || !data.graphEdges) {
+            return { graphNodes: [], graphEdges: [] };
+        }
+
+        const validNodes = data.graphNodes.filter(node => {
+            return node && 
+                   node.id && 
+                   node.label && 
+                   node.fill && 
+                   node.type &&
+                   typeof node.id === 'string' &&
+                   typeof node.label === 'string' &&
+                   typeof node.fill === 'string' &&
+                   typeof node.type === 'string';
+        });
+
+        const validEdges = data.graphEdges.filter(edge => {
+            if (!edge || !edge.source || !edge.target || !edge.id || !edge.label || !edge.fill) {
+                return false;
+            }
+            
+            // Ensure all properties are strings
+            if (typeof edge.source !== 'string' || 
+                typeof edge.target !== 'string' || 
+                typeof edge.id !== 'string' || 
+                typeof edge.label !== 'string' || 
+                typeof edge.fill !== 'string') {
+                return false;
+            }
+            
+            // Ensure source and target nodes exist
+            const hasSource = validNodes.some(n => n.id === edge.source);
+            const hasTarget = validNodes.some(n => n.id === edge.target);
+            
+            return hasSource && hasTarget;
+        });
+
+        return { graphNodes: validNodes, graphEdges: validEdges };
+    };
+
     // Helper function to get edge cost from DFG
     const getEdgeCost = (source, target) => {
+        if (!dfg || !dfg.edges) return 0;
         const edge = dfg.edges.find(e => e.source === source && e.target === target);
-        return edge ? edge.cost : 0;
+        return edge && (typeof edge.cost === 'number' && 
+                       !isNaN(edge.cost) && 
+                       isFinite(edge.cost)) ? edge.cost : 0;
     };
 
     // Helper function to prepare edges data for tables
     const prepareEdgesData = () => {
+        if (!cutSuggestion || !cutSuggestion.edges_to_be_added || !cutSuggestion.edges_to_be_removed) {
+            return { edgesToAdd: [], edgesToRemove: [] };
+        }
+
+        const costToAdd = (typeof cutSuggestion.cost_to_add_edge === 'number' && 
+                          !isNaN(cutSuggestion.cost_to_add_edge) && 
+                          isFinite(cutSuggestion.cost_to_add_edge))
+            ? cutSuggestion.cost_to_add_edge 
+            : 0;
+
         const edgesToAdd = cutSuggestion.edges_to_be_added.map(edge => ({
             source: edge[0],
             target: edge[1],
-            cost: cutSuggestion.cost_to_add_edge
+            cost: costToAdd
         }));
 
         const edgesToRemove = cutSuggestion.edges_to_be_removed.map(edge => ({
@@ -144,50 +246,58 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
         return { edgesToAdd, edgesToRemove };
     };
 
-    const data = transformData(cutSuggestion, dfg);
+    const rawData = transformData(cutSuggestion, dfg);
+    const data = validateGraphData(rawData);
     const { edgesToAdd, edgesToRemove } = prepareEdgesData();
 
-    // Custom layout function to position clusters
-    const getNodePosition = (id, { nodes }) => {
-        const node = nodes.find(n => n.id === id);
-        const nodeIndex = nodes.findIndex(n => n.id === id);
-        
-        if (!node || !node.type) {
-            return { x: 0, y: 0, z: 1 };
-        }
+    // Enhanced debug logging to identify missing nodes
+    console.log('Cut suggestion data:', {
+        set1: cutSuggestion.set1,
+        set2: cutSuggestion.set2,
+        set1Length: cutSuggestion.set1?.length,
+        set2Length: cutSuggestion.set2?.length
+    });
+    
+    console.log('Raw data generated:', {
+        rawNodes: rawData.graphNodes.length,
+        rawEdges: rawData.graphEdges.length,
+        validNodes: data.graphNodes.length,
+        validEdges: data.graphEdges.length
+    });
 
-        // Separate nodes by type
-        const set1Nodes = nodes.filter(n => n.type === 'Set 1');
-        const set2Nodes = nodes.filter(n => n.type === 'set2');
-        
-        const clusterDistance = 300; // Distance between clusters
-        const nodeSpacing = 100; // Distance between nodes within a cluster
-        
-        if (node.type === 'Set 1') {
-            const set1Index = set1Nodes.findIndex(n => n.id === id);
-            return {
-                x: -clusterDistance / 2, // Position Set 1 to the left
-                y: (set1Index - (set1Nodes.length - 1) / 2) * nodeSpacing, // Center vertically
-                z: 1
-            };
-        } else if (node.type === 'set2') {
-            const set2Index = set2Nodes.findIndex(n => n.id === id);
-            return {
-                x: clusterDistance / 2, // Position Set 2 to the right
-                y: (set2Index - (set2Nodes.length - 1) / 2) * nodeSpacing, // Center vertically
-                z: 1
-            };
-        }
-        
-        return { x: 0, y: 0, z: 1 };
-    };
+    if (rawData.graphNodes.length !== data.graphNodes.length) {
+        console.warn('Some nodes were filtered out during validation:', {
+            filteredNodes: rawData.graphNodes.filter(node => 
+                !data.graphNodes.some(validNode => validNode.id === node.id)
+            )
+        });
+    }
+
+    // Debug logging to help identify NaN sources
+    if (data.graphNodes.length === 0 || data.graphEdges.length === 0) {
+        console.warn('Graph data validation resulted in empty nodes or edges:', {
+            originalNodes: rawData.graphNodes.length,
+            validNodes: data.graphNodes.length,
+            originalEdges: rawData.graphEdges.length,
+            validEd: data.graphEdges.length
+        });
+    }
+
+    // Additional validation to ensure we have valid data for rendering
+    if (!data.graphNodes || !data.graphEdges) {
+        return <div className='cut-suggestion-wrapper'>Unable to generate graph data</div>;
+    }
 
     return (
         <div className='cut-suggestion-wrapper'>
             <div className='cut-title'>{cutSuggestion.cut_type} Cut</div>
             <div className='cut-info'>
                 <div className='cut-set-diagram-wrapper'>
-                    <div className='graph-container'>
+                    <div 
+                        className='graph-container'
+                        onClick={() => handleDfgGraphSelection(data.graphNodes, data.graphEdges)}
+                        style={{ cursor: 'pointer' }}
+                    >
                         <GraphCanvas
                             nodes={data.graphNodes}
                             edges={data.graphEdges}
@@ -251,7 +361,13 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected })
 
                         <div className='total-cost-section'>
                             <div className='total-cost'>
-                                <strong>Total cost to perform cut: {cutSuggestion.total_cost}</strong>
+                                <strong>Total cost to perform cut: {
+                                    (typeof cutSuggestion.total_cost === 'number' && 
+                                     !isNaN(cutSuggestion.total_cost) && 
+                                     isFinite(cutSuggestion.total_cost))
+                                        ? cutSuggestion.total_cost 
+                                        : 'N/A'
+                                }</strong>
                             </div>
                         </div>
                     </div>

@@ -1,0 +1,198 @@
+.modified-edges-container {
+    margin: 20px 0;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.modified-edges-title {
+    margin: 0 0 20px 0;
+    color: #333;
+    font-size: 1.4em;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 2px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+.total-cost-summary {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #ffffff;
+    border-radius: 6px;
+    border: 2px solid #e9ecef;
+    text-align: center;
+}
+
+.net-cost-change {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #495057;
+}
+
+.cost-value {
+    margin-left: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #495057;
+    background-color: #f8f9fa;
+}
+
+.edges-section {
+    margin-bottom: 20px;
+}
+
+.edges-section:last-child {
+    margin-bottom: 0;
+}
+
+.edges-section-title {
+    margin: 0 0 15px 0;
+    font-size: 1.1em;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.edges-section-title.removed {
+    color: #dc3545;
+}
+
+.edges-section-title.added {
+    color: #28a745;
+}
+
+.edges-section-title.removed::before {
+    content: "−";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.edges-section-title.added::before {
+    content: "+";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background-color: #28a745;
+    color: white;
+    border-radius: 50%;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.edges-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.edge-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 15px;
+    border-radius: 6px;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    transition: all 0.2s ease;
+}
+
+.edge-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.edge-item.removed {
+    border-left: 4px solid #dc3545;
+    background-color: #f8d7da;
+}
+
+.edge-item.added {
+    border-left: 4px solid #28a745;
+    background-color: #d4edda;
+}
+
+.edge-source,
+.edge-target {
+    font-weight: 500;
+    color: #495057;
+    padding: 4px 8px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    min-width: fit-content;
+}
+
+.edge-arrow {
+    color: #6c757d;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.edge-weight {
+    color: #495057;
+    font-weight: 600;
+    font-size: 0.9em;
+    margin-left: auto;
+    background-color: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid #dee2e6;
+    min-width: fit-content;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .modified-edges-container {
+        margin: 15px 0;
+        padding: 15px;
+    }
+    
+    .modified-edges-title {
+        font-size: 1.2em;
+    }
+    
+    .edge-item {
+        padding: 8px 12px;
+        font-size: 0.8em;
+        flex-wrap: wrap;
+    }
+    
+    .edge-source,
+    .edge-target {
+        font-size: 0.85em;
+    }
+}
+
+/* Animation for when component appears */
+.modified-edges-container {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

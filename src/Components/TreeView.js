@@ -9,6 +9,7 @@ import ReactFlow, {
   Handle
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import './HomePage.css';
 
 // Custom node component for different node types
 const CustomNode = ({ data }) => {
@@ -295,7 +296,7 @@ export default function TreeView({ data }) {
   }
   
   return (
-    <div className="tree-view-wrapper" style={{ width: '100%', height: '600px' }}>
+    <div className="tree-view-wrapper">
       <ReactFlow
         nodes={nodes}
         edges={edges}

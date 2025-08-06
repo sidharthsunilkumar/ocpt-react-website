@@ -8,6 +8,8 @@ import DirectedGraphV2simpleexample from './DirectedGraphV2simpleexample';
 import DirectedGraphV2clusterexample from './DirectedGraphV2clusterexample';
 import CutSuggestion from './CutSuggestion';
 import TreeView from './TreeView';
+import Ddfg from './Ddfg';
+import ModifiedEdges from './ModifiedEdges';
 // import { useNavigate, Link } from 'react-router-dom';
 
 export default function HomePage() {
@@ -19,6 +21,10 @@ export default function HomePage() {
     const [isPerfectlyCut, setIsPerfectlyCut] = useState(true);
     const [cutSuggestionsList, setCutSuggestionsList] = useState([]);
     const [ocpt, setOcpt] = useState([]);
+    const [totalEdgesRemoved, setTotalEdgesRemoved] = useState([]);
+    const [totalEdgesAdded, setTotalEdgesAdded] = useState([]);
+    const [isDfgGraphSelected, setIsDfgGraphSelected] = useState(false);
+    const [dfgGraphSelected, setDfgGraphSelected] = useState({nodes: [], edges: []});
 
     useEffect(() => {
         console.log("Fetching graph data from server...");
@@ -32,6 +38,8 @@ export default function HomePage() {
                 setEndActivities(response.data.end_activities || []);
                 setCutSuggestionsList(response.data.cut_suggestions_list || []);
                 setOcpt(response.data.OCPT || []);
+                setTotalEdgesRemoved(response.data.total_edges_removed || []);
+                setTotalEdgesAdded(response.data.total_edges_added || []);
                 setIsPerfectlyCut(response.data.is_perfectly_cut || true);
             })
             .catch(err => {
@@ -45,6 +53,7 @@ export default function HomePage() {
     // Function to handle cut selection and send POST request
     const handleCutSelected = (cutSelected) => {
         console.log("Cut selected:", cutSelected);
+        setIsLoading(true);
         axios.post('http://localhost:1080/cut-selected', {
             dfg,
             ocpt,
@@ -52,7 +61,9 @@ export default function HomePage() {
             end_activities: endActivities,
             is_perfectly_cut: isPerfectlyCut,
             cut_suggestions_list: cutSuggestionsList,
-            cut_selected: cutSelected
+            cut_selected: cutSelected,
+            total_edges_removed: totalEdgesRemoved,
+            total_edges_added: totalEdgesAdded
         })
         .then(res => {
             console.log('Cut selected POST response:', res.data);
@@ -65,28 +76,51 @@ export default function HomePage() {
             setCutSuggestionsList(response.cut_suggestions_list || []);
             setOcpt(response.OCPT || []);
             setIsPerfectlyCut(response.is_perfectly_cut || true);
+            setTotalEdgesRemoved(response.total_edges_removed || []);
+            setTotalEdgesAdded(response.total_edges_added || []);
         })
         .catch(err => {
             console.error('Error posting cut selection:', err);
+        })
+        .finally(() => {
+            setIsLoading(false);
         });
     };
+
+    const handleDfgGraphSelection = (nodes, edges) => {
+        setDfgGraphSelected({ nodes, edges });
+        setIsDfgGraphSelected(true);
+    }
+
+    const handleBackToCutSuggestions = () => {
+        setIsDfgGraphSelected(false);
+    }
 
     return (
         <div>
             <div className='home-page-wrapper'>
                 {isLoading ? <div>Loading...</div> :
                     <div>
-                        <TreeView data={ocpt} />
-                        <div className='cut-suggestions-wrapper'>
-                            {cutSuggestionsList.cuts.map((cutSuggestion, index) => (
-                                <CutSuggestion
-                                    cutSuggestion={cutSuggestion}
-                                    dfg={dfg}
-                                    key={index}
-                                    handleCutSelected={handleCutSelected}
-                                />
-                            ))}
-                        </div>
+                        {isDfgGraphSelected ? (
+                            <Ddfg dfg={dfgGraphSelected} onBack={handleBackToCutSuggestions} startActivities={startActivities} endActivities={endActivities} />
+                        ) : (
+                            <div>
+                                <div className="process-tree-title">Process Tree</div>
+                                <TreeView data={ocpt} />
+                                <div className='cut-suggestions-wrapper'>
+                                    {cutSuggestionsList.cuts && cutSuggestionsList.cuts.map((cutSuggestion, index) => (
+                                        <CutSuggestion
+                                            cutSuggestion={cutSuggestion}
+                                            dfg={dfg}
+                                            key={index}
+                                            handleCutSelected={handleCutSelected}
+                                            handleDfgGraphSelection={handleDfgGraphSelection}
+                                        />
+                                    ))}
+                                </div>
+                                <ModifiedEdges totalEdgesRemoved={totalEdgesRemoved} totalEdgesAdded={totalEdgesAdded} />
+                            </div>
+                        )}
                     </div>
                 }
             </div>
