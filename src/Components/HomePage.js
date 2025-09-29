@@ -10,6 +10,7 @@ import CutSuggestion from './CutSuggestion';
 import TreeView from './TreeView';
 import Ddfg from './Ddfg';
 import ModifiedEdges from './ModifiedEdges';
+import Loading from './Loading';
 // import { useNavigate, Link } from 'react-router-dom';
 
 export default function HomePage() {
@@ -25,6 +26,7 @@ export default function HomePage() {
     const [totalEdgesAdded, setTotalEdgesAdded] = useState([]);
     const [isDfgGraphSelected, setIsDfgGraphSelected] = useState(false);
     const [dfgGraphSelected, setDfgGraphSelected] = useState({nodes: [], edges: []});
+    const [costToAddEdges, setCostToAddEdges] = useState({});
 
     useEffect(() => {
         console.log("Fetching graph data from server...");
@@ -41,12 +43,14 @@ export default function HomePage() {
                 setTotalEdgesRemoved(response.data.total_edges_removed || []);
                 setTotalEdgesAdded(response.data.total_edges_added || []);
                 setIsPerfectlyCut(response.data.is_perfectly_cut || true);
+                setCostToAddEdges(response.data.cost_to_add_edges || {});
             })
             .catch(err => {
                 console.error("Error fetching graph data:", err);
             })
             .finally(() => {
                 setIsLoading(false);
+                
             });
     }, []);
 
@@ -63,7 +67,8 @@ export default function HomePage() {
             cut_suggestions_list: cutSuggestionsList,
             cut_selected: cutSelected,
             total_edges_removed: totalEdgesRemoved,
-            total_edges_added: totalEdgesAdded
+            total_edges_added: totalEdgesAdded,
+            cost_to_add_edges: costToAddEdges
         })
         .then(res => {
             console.log('Cut selected POST response:', res.data);
@@ -78,6 +83,7 @@ export default function HomePage() {
             setIsPerfectlyCut(response.is_perfectly_cut || true);
             setTotalEdgesRemoved(response.total_edges_removed || []);
             setTotalEdgesAdded(response.total_edges_added || []);
+            setCostToAddEdges(response.cost_to_add_edges || {});
         })
         .catch(err => {
             console.error('Error posting cut selection:', err);
@@ -99,7 +105,7 @@ export default function HomePage() {
     return (
         <div>
             <div className='home-page-wrapper'>
-                {isLoading ? <div>Loading...</div> :
+                {isLoading ? <Loading /> :
                     <div>
                         {isDfgGraphSelected ? (
                             <Ddfg dfg={dfgGraphSelected} onBack={handleBackToCutSuggestions} startActivities={startActivities} endActivities={endActivities} />

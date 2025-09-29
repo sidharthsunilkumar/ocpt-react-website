@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
-import ReactFlow, { 
-  Background, 
-  Controls, 
-  MiniMap, 
-  useNodesState, 
+import ReactFlow, {
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
   useEdgesState,
   Position,
   Handle
@@ -15,28 +15,29 @@ import './HomePage.css';
 const CustomNode = ({ data }) => {
   const getNodeStyle = (label) => {
     switch (label) {
-      case 'sequence': 
+      case 'sequence':
         return { backgroundColor: '#3b82f6', color: 'white' };
-      case 'parallel': 
+      case 'parallel':
         return { backgroundColor: '#10b981', color: 'white' };
-      case 'exclusive': 
+      case 'exclusive':
         return { backgroundColor: '#ef4444', color: 'white' };
-      case 'redo': 
+      case 'redo':
         return { backgroundColor: '#f59e0b', color: 'white' };
-      case 'flower': 
+      case 'flower':
         return { backgroundColor: '#fbbf24', color: 'black' };
-      default: 
+      default:
         return { backgroundColor: '#6b7280', color: 'white' };
     }
   };
 
-  const getNodeLabel = (label) => {
+  const getNodeLabel = (label, position) => {
+    const positionText = position ? ` [${position[0]},${position[1]}]` : '';
     switch (label) {
-      case 'sequence': return 'Sequence →';
-      case 'parallel': return 'Parallel ∥';
-      case 'exclusive': return 'Exclusive ⊗';
-      case 'redo': return 'Redo ↻';
-      default: return label;
+      case 'sequence': return `Sequence →${positionText}`;
+      case 'parallel': return `Parallel ∥${positionText}`;
+      case 'exclusive': return `Exclusive ⊗${positionText}`;
+      case 'redo': return `Redo ↻${positionText}`;
+      default: return `${label}${positionText}`;
     }
   };
 
@@ -44,13 +45,13 @@ const CustomNode = ({ data }) => {
   const style = getNodeStyle(data.originalLabel);
 
   return (
-    <div 
+    <div
       style={{
         ...style,
         padding: '10px',
         borderRadius: '8px',
         border: '2px solid #333',
-        width: '140px', // Fixed width for all nodes
+        width: '140px',
         textAlign: 'center',
         fontSize: '12px',
         fontWeight: 'bold',
@@ -66,7 +67,9 @@ const CustomNode = ({ data }) => {
       />
       {isFlower ? (
         <div>
-          <div style={{ marginBottom: '8px', wordWrap: 'break-word' }}>Flower Model</div>
+          <div style={{ marginBottom: '8px', wordWrap: 'break-word' }}>
+            {`Flower Model${data.position ? ` [${data.position[0]},${data.position[1]}]` : ''}`}
+          </div>
           <div style={{ fontSize: '10px', lineHeight: '1.2', wordWrap: 'break-word' }}>
             {data.children.map((child, index) => (
               <div key={index} style={{ wordWrap: 'break-word' }}>{child}</div>
@@ -75,7 +78,7 @@ const CustomNode = ({ data }) => {
         </div>
       ) : (
         <div style={{ wordWrap: 'break-word' }}>
-          {getNodeLabel(data.originalLabel)}
+          {getNodeLabel(data.originalLabel, data.position)}
         </div>
       )}
       <Handle
@@ -92,182 +95,221 @@ const nodeTypes = {
 };
 
 export default function TreeView({ data }) {
-  // Store parent-child relationships for hierarchical dragging
   const [nodeHierarchy, setNodeHierarchy] = React.useState({});
-  
-  // Transform OCPT data to React Flow format
+
   const transformToReactFlowFormat = (ocptData) => {
     if (!ocptData || !ocptData.length) return { nodes: [], edges: [], hierarchy: {} };
-    
+
     const nodes = [];
     const edges = [];
-    const hierarchy = {}; // Track parent-child relationships
+    const hierarchy = {};
     let nodeId = 0;
-    
-    // Simple positioning algorithm
-    const processNode = (node, parentId = null, depth = 0, siblingIndex = 0, totalSiblings = 1, parentX = 400) => {
+
+    const processNode = (
+      node,
+      parentId = null,
+      depth = 0,
+      siblingIndex = 0,
+      totalSiblings = 1,
+      parentX = 400
+    ) => {
       const currentNodeId = `node-${nodeId++}`;
-      
-      // Track parent-child relationships
       if (parentId) {
         if (!hierarchy[parentId]) {
           hierarchy[parentId] = [];
         }
         hierarchy[parentId].push(currentNodeId);
       }
-      
-      // Compact spacing settings
-      const minHorizontalSpacing = 180; // Minimum space between siblings
-      const verticalSpacing = 100; // Vertical distance between levels
-      const maxSpreadWidth = 800; // Maximum width for spreading siblings
-      
-      // Calculate position for this node
+
+      const minHorizontalSpacing = 180;
+      const verticalSpacing = 100;
+      const maxSpreadWidth = 800;
+
       let nodeX;
       let nodeY = 50 + depth * verticalSpacing;
-      
+
       if (totalSiblings === 1) {
-        // Single child - place directly under parent
         nodeX = parentX;
       } else {
-        // Multiple children - spread them out but keep compact
         const effectiveSpacing = Math.min(minHorizontalSpacing, maxSpreadWidth / totalSiblings);
         const totalWidth = (totalSiblings - 1) * effectiveSpacing;
         const startX = parentX - totalWidth / 2;
         nodeX = startX + siblingIndex * effectiveSpacing;
       }
-      
+
       const position = { x: nodeX, y: nodeY };
-      
-      // Handle flower nodes specially
-      if (node.label === 'flower') {
+
+      // FLOWER → treated as leaf
+      if (node.label === "flower") {
         const children = node.children || [];
-        const childLabels = children.map(child => child.label);
-        
+        const childLabels = children.map((child) => child.label);
+
         nodes.push({
           id: currentNodeId,
-          type: 'custom',
+          type: "custom",
           position,
           data: {
-            originalLabel: 'flower',
-            children: childLabels
+            originalLabel: "flower",
+            children: childLabels,
+            position: node.position || null,
           },
           sourcePosition: Position.Bottom,
           targetPosition: Position.Top,
         });
-        
-        // Create edge to parent if exists
+
         if (parentId) {
           edges.push({
             id: `edge-${parentId}-${currentNodeId}`,
             source: parentId,
             target: currentNodeId,
-            type: 'default',
+            type: "default",
             animated: false,
-            style: { stroke: '#333', strokeWidth: 2 }
+            style: { stroke: "#333", strokeWidth: 2 },
           });
         }
-        
+
         return currentNodeId;
       }
-      
-      // Regular node processing
+
+      // REGULAR NODE
       nodes.push({
         id: currentNodeId,
-        type: 'custom',
+        type: "custom",
         position,
         data: {
-          originalLabel: node.label
+          originalLabel: node.label,
+          position: node.position || null,
         },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
       });
-      
-      // Create edge to parent if exists
+
       if (parentId) {
         edges.push({
           id: `edge-${parentId}-${currentNodeId}`,
           source: parentId,
           target: currentNodeId,
-          type: 'default',
+          type: "default",
           animated: false,
-          style: { stroke: '#333', strokeWidth: 2 }
+          style: { stroke: "#333", strokeWidth: 2 },
         });
       }
-      
-      // Process children (skip for flower nodes as they're handled above)
-      if (node.children && node.label !== 'flower') {
+
+      if (node.children && node.label !== "flower") {
         const childrenCount = node.children.length;
         node.children.forEach((child, index) => {
           processNode(child, currentNodeId, depth + 1, index, childrenCount, nodeX);
         });
       }
-      
+
       return currentNodeId;
     };
-    
-    // Start processing from root
+
+    /**
+     * Post-processing
+     * - Parent X = average(children X) except flower
+     * - Fix overlaps iteratively
+     */
+    const optimizePositions = (nodes, hierarchy) => {
+      const minHorizontalSpacing = 180;
+      const MAX_ITER = 25;
+      let iter = 0;
+      let changed = true;
+
+      while (changed && iter < MAX_ITER) {
+        iter++;
+        changed = false;
+
+        // Adjust parents
+        for (const parentId in hierarchy) {
+          const parent = nodes.find((n) => n.id === parentId);
+          if (!parent) continue;
+          if (parent.data.originalLabel === "flower") continue; // skip flowers
+
+          const children = hierarchy[parentId].map((cid) => nodes.find((n) => n.id === cid)).filter(Boolean);
+          if (children.length > 0) {
+            const avgX = children.reduce((sum, c) => sum + c.position.x, 0) / children.length;
+            if (Math.abs(parent.position.x - avgX) > 2) {
+              parent.position.x = parent.position.x * 0.7 + avgX * 0.3; // smooth move
+              changed = true;
+            }
+          }
+        }
+
+        // Fix overlaps per level
+        const levels = {};
+        nodes.forEach((node) => {
+          const y = node.position.y;
+          if (!levels[y]) levels[y] = [];
+          levels[y].push(node);
+        });
+
+        for (const y in levels) {
+          const levelNodes = levels[y].sort((a, b) => a.position.x - b.position.x);
+          for (let i = 1; i < levelNodes.length; i++) {
+            const prev = levelNodes[i - 1];
+            const curr = levelNodes[i];
+            const dx = curr.position.x - prev.position.x;
+            if (dx < minHorizontalSpacing) {
+              curr.position.x = prev.position.x + minHorizontalSpacing;
+              changed = true;
+            }
+          }
+        }
+      }
+
+      return nodes;
+    };
+
     processNode(data[0]);
-    
+    optimizePositions(nodes, hierarchy);
+
     return { nodes, edges, hierarchy };
   };
-  
-  const flowData = useMemo(() => {
-    const result = transformToReactFlowFormat(data);
-    console.log('Generated nodes:', result.nodes);
-    console.log('Generated edges:', result.edges);
-    console.log('Node hierarchy:', result.hierarchy);
-    return result;
-  }, [data]);
-  
+
+  const flowData = useMemo(() => transformToReactFlowFormat(data), [data]);
+
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  
-  // Update nodes and edges when flowData changes
+
   React.useEffect(() => {
     setNodes(flowData.nodes);
     setEdges(flowData.edges);
     setNodeHierarchy(flowData.hierarchy || {});
   }, [flowData, setNodes, setEdges]);
-  
-  // Function to get all descendants of a node
+
   const getAllDescendants = (nodeId, hierarchy) => {
     const descendants = [];
     const children = hierarchy[nodeId] || [];
-    
+
     for (const child of children) {
       descendants.push(child);
       descendants.push(...getAllDescendants(child, hierarchy));
     }
-    
+
     return descendants;
   };
-  
-  // Custom node change handler for hierarchical dragging
+
   const onNodesChangeHandler = React.useCallback((changes) => {
     const moveChanges = changes.filter(change => change.type === 'position' && change.position);
     const otherChanges = changes.filter(change => change.type !== 'position' || !change.position);
-    
+
     if (moveChanges.length > 0) {
       setNodes((currentNodes) => {
         const updatedNodes = [...currentNodes];
         const nodeMap = new Map(updatedNodes.map(node => [node.id, node]));
         const processedNodes = new Set();
-        
+
         moveChanges.forEach(change => {
           if (processedNodes.has(change.id)) return;
-          
           const movingNode = nodeMap.get(change.id);
           if (!movingNode) return;
-          
-          // Calculate the delta
+
           const deltaX = change.position.x - movingNode.position.x;
           const deltaY = change.position.y - movingNode.position.y;
-          
-          // Update the moving node
           movingNode.position = { ...change.position };
           processedNodes.add(change.id);
-          
-          // Get all descendants and move them
+
           const descendants = getAllDescendants(change.id, nodeHierarchy);
           descendants.forEach(descendantId => {
             const descendantNode = nodeMap.get(descendantId);
@@ -280,21 +322,20 @@ export default function TreeView({ data }) {
             }
           });
         });
-        
+
         return updatedNodes;
       });
     }
-    
-    // Handle other changes normally
+
     if (otherChanges.length > 0) {
       onNodesChange(otherChanges);
     }
   }, [nodeHierarchy, onNodesChange]);
-  
+
   if (!data || !data.length) {
     return <div>No tree data available</div>;
   }
-  
+
   return (
     <div className="tree-view-wrapper">
       <ReactFlow
@@ -315,7 +356,7 @@ export default function TreeView({ data }) {
       >
         <Background />
         <Controls />
-        <MiniMap 
+        <MiniMap
           style={{
             height: 120,
             backgroundColor: '#f8f9fa',

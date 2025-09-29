@@ -10,6 +10,7 @@
     "axios": "^0.25.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-loading-icons": "^1.1.0",
     "react-organizational-chart": "^2.2.1",
     "react-router-dom": "^7.7.1",
     "react-scripts": "5.0.1",

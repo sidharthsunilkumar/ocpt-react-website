@@ -234,7 +234,7 @@ export default function CutSuggestion({ cutSuggestion, dfg, handleCutSelected, h
         const edgesToAdd = cutSuggestion.edges_to_be_added.map(edge => ({
             source: edge[0],
             target: edge[1],
-            cost: costToAdd
+            cost: edge[2]
         }));
 
         const edgesToRemove = cutSuggestion.edges_to_be_removed.map(edge => ({
