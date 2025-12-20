@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams } from 'react-router-dom';
 import './HomePage.css';
 import DirectedGraph from './DirectedGraph';
 import DirectedGraphV2 from './DirectedGraphV2';
@@ -10,10 +11,12 @@ import CutSuggestion from './CutSuggestion';
 import TreeView from './TreeView';
 import Ddfg from './Ddfg';
 import ModifiedEdges from './ModifiedEdges';
+import ConformanceCheckBox from './ConformanceCheckBox';
 import Loading from './Loading';
 // import { useNavigate, Link } from 'react-router-dom';
 
 export default function HomePage() {
+    const { name: filename } = useParams();
 
     const [isLoading, setIsLoading] = useState(true);
     const [dfg, setDfg] = useState({ nodes: [], edges: [] });
@@ -27,10 +30,13 @@ export default function HomePage() {
     const [isDfgGraphSelected, setIsDfgGraphSelected] = useState(false);
     const [dfgGraphSelected, setDfgGraphSelected] = useState({nodes: [], edges: []});
     const [costToAddEdges, setCostToAddEdges] = useState({});
+    const [precision, setPrecision] = useState(0);
+    const [fitness, setFitness] = useState(0);
+    const [fScore, setFScore] = useState(0);
 
     useEffect(() => {
         console.log("Fetching graph data from server...");
-        axios.get('http://localhost:1080/')
+        axios.get(`http://localhost:1080/${filename}`)
             .then(response => {
                 console.log(response.data);
                 const nodesArray = Object.values(response.data.dfg.nodes || []);
@@ -44,21 +50,24 @@ export default function HomePage() {
                 setTotalEdgesAdded(response.data.total_edges_added || []);
                 setIsPerfectlyCut(response.data.is_perfectly_cut || true);
                 setCostToAddEdges(response.data.cost_to_add_edges || {});
+                setPrecision(response.data.precision || 0);
+                setFitness(response.data.fitness || 0);
+                setFScore(response.data.f_score || 0);
             })
             .catch(err => {
                 console.error("Error fetching graph data:", err);
             })
             .finally(() => {
                 setIsLoading(false);
-                
+                console.log("ocpt data:", ocpt);
             });
-    }, []);
+    }, [filename]);
 
     // Function to handle cut selection and send POST request
     const handleCutSelected = (cutSelected) => {
         console.log("Cut selected:", cutSelected);
         setIsLoading(true);
-        axios.post('http://localhost:1080/cut-selected', {
+        axios.post(`http://localhost:1080/cut-selected/${filename}`, {
             dfg,
             ocpt,
             start_activities: startActivities,
@@ -84,12 +93,17 @@ export default function HomePage() {
             setTotalEdgesRemoved(response.total_edges_removed || []);
             setTotalEdgesAdded(response.total_edges_added || []);
             setCostToAddEdges(response.cost_to_add_edges || {});
+            setPrecision(response.precision || 0);
+            setFitness(response.fitness || 0);
+            setFScore(response.f_score || 0);
+            console.log("ocpt data:", response.OCPT);
         })
         .catch(err => {
             console.error('Error posting cut selection:', err);
         })
         .finally(() => {
             setIsLoading(false);
+            
         });
     };
 
@@ -111,7 +125,7 @@ export default function HomePage() {
                             <Ddfg dfg={dfgGraphSelected} onBack={handleBackToCutSuggestions} startActivities={startActivities} endActivities={endActivities} />
                         ) : (
                             <div>
-                                <div className="process-tree-title">Process Tree</div>
+                                <div className="process-tree-title">TreeGen</div>
                                 <TreeView data={ocpt} />
                                 <div className='cut-suggestions-wrapper'>
                                     {cutSuggestionsList.cuts && cutSuggestionsList.cuts.map((cutSuggestion, index) => (
@@ -125,6 +139,9 @@ export default function HomePage() {
                                     ))}
                                 </div>
                                 <ModifiedEdges totalEdgesRemoved={totalEdgesRemoved} totalEdgesAdded={totalEdgesAdded} />
+                                {cutSuggestionsList.cuts && cutSuggestionsList.cuts.length === 0 && (
+                                    <ConformanceCheckBox fitness={fitness} precision={precision} fScore={fScore} />
+                                )}
                             </div>
                         )}
                     </div>

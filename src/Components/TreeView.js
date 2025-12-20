@@ -23,6 +23,8 @@ const CustomNode = ({ data }) => {
         return { backgroundColor: '#ef4444', color: 'white' };
       case 'redo':
         return { backgroundColor: '#f59e0b', color: 'white' };
+      case 'tau':
+        return { backgroundColor: '#f6ce6aff', color: 'black' };
       case 'flower':
         return { backgroundColor: '#fbbf24', color: 'black' };
       default:
@@ -37,6 +39,7 @@ const CustomNode = ({ data }) => {
       case 'parallel': return `Parallel ∥${positionText}`;
       case 'exclusive': return `Exclusive ⊗${positionText}`;
       case 'redo': return `Redo ↻${positionText}`;
+      case 'tau': return `τ${positionText}`;
       default: return `${label}${positionText}`;
     }
   };

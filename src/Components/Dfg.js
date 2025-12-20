@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useParams } from 'react-router-dom';
 import './Dfg.css';
 import DirectedGraph from './DirectedGraph';
 import DirectedGraphV2 from './DirectedGraphV2';
@@ -9,12 +10,13 @@ import DirectedGraphV2clusterexample from './DirectedGraphV2clusterexample';
 // import { useNavigate, Link } from 'react-router-dom';
 
 export default function Dfg() {
+    const { name: filename } = useParams();
 
     const [name, setName] = useState("");
     const [graphData, setGraphData] = useState({ nodes: [], edges: [] });
 
     useEffect(() => {
-        axios.get('http://localhost:1080/dfg')
+        axios.get(`http://localhost:1080/dfg/${filename}`)
             .then(response => {
                 console.log(response.data);
                 // Assuming response.data is { nodes: {...}, edges: {...} }
@@ -27,7 +29,7 @@ export default function Dfg() {
             .catch(err => {
                 console.error("Error fetching graph data:", err);
             });
-    }, []);
+    }, [filename]);
 
     return (
         <div>
