@@ -97,7 +97,7 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-export default function TreeView({ data }) {
+export default function TreeView({ data, modifyNode }) {
   const [nodeHierarchy, setNodeHierarchy] = React.useState({});
 
   const transformToReactFlowFormat = (ocptData) => {
@@ -155,6 +155,7 @@ export default function TreeView({ data }) {
             originalLabel: "flower",
             children: childLabels,
             position: node.position || null,
+            originalId: node.id,
           },
           sourcePosition: Position.Bottom,
           targetPosition: Position.Top,
@@ -182,6 +183,7 @@ export default function TreeView({ data }) {
         data: {
           originalLabel: node.label,
           position: node.position || null,
+          originalId: node.id,
         },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
@@ -335,6 +337,14 @@ export default function TreeView({ data }) {
     }
   }, [nodeHierarchy, onNodesChange]);
 
+  const onNodeClick = (event, node) => {
+    console.log('Modify Node:', node.data);
+    const allowedLabels = ['sequence', 'parallel', 'redo', 'exclusive', 'flower'];
+    if (modifyNode && allowedLabels.includes(node.data.originalLabel)) {
+      modifyNode(data, node.data.originalId);
+    }
+  };
+
   if (!data || !data.length) {
     return <div>No tree data available</div>;
   }
@@ -346,6 +356,7 @@ export default function TreeView({ data }) {
         edges={edges}
         onNodesChange={onNodesChangeHandler}
         onEdgesChange={onEdgesChange}
+        onNodeClick={onNodeClick}
         nodeTypes={nodeTypes}
         fitView
         attributionPosition="bottom-left"

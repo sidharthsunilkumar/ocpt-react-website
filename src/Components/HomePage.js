@@ -27,6 +27,7 @@ export default function HomePage() {
     const [ocpt, setOcpt] = useState([]);
     const [totalEdgesRemoved, setTotalEdgesRemoved] = useState([]);
     const [totalEdgesAdded, setTotalEdgesAdded] = useState([]);
+    const [edgeModifications, setEdgeModifications] = useState([]);
     const [isDfgGraphSelected, setIsDfgGraphSelected] = useState(false);
     const [dfgGraphSelected, setDfgGraphSelected] = useState({nodes: [], edges: []});
     const [costToAddEdges, setCostToAddEdges] = useState({});
@@ -77,6 +78,7 @@ export default function HomePage() {
             cut_selected: cutSelected,
             total_edges_removed: totalEdgesRemoved,
             total_edges_added: totalEdgesAdded,
+            edge_modifications: edgeModifications,
             cost_to_add_edges: costToAddEdges
         })
         .then(res => {
@@ -92,6 +94,7 @@ export default function HomePage() {
             setIsPerfectlyCut(response.is_perfectly_cut || true);
             setTotalEdgesRemoved(response.total_edges_removed || []);
             setTotalEdgesAdded(response.total_edges_added || []);
+            setEdgeModifications(response.edge_modifications || []);
             setCostToAddEdges(response.cost_to_add_edges || {});
             setPrecision(response.precision || 0);
             setFitness(response.fitness || 0);
@@ -116,6 +119,45 @@ export default function HomePage() {
         setIsDfgGraphSelected(false);
     }
 
+    const modifyNode = (data, nodeId) => {
+        setIsLoading(true);
+        axios.post(`http://localhost:1080/modify-node/${filename}`, {
+            selected_node_id: nodeId,
+            dfg,
+            ocpt,
+            start_activities: startActivities,
+            end_activities: endActivities,
+            total_edges_removed: totalEdgesRemoved,
+            total_edges_added: totalEdgesAdded,
+            edge_modifications: edgeModifications,
+            cost_to_add_edges: costToAddEdges
+        })
+        .then(res => {
+            console.log('Modify node POST response:', res.data);
+            const response = res.data;
+            const nodesArray = Object.values(response.dfg.nodes || []);
+            const edgesArray = Object.values(response.dfg.edges || []);
+            setDfg({ nodes: nodesArray, edges: edgesArray });
+            setStartActivities(response.start_activities || []);
+            setEndActivities(response.end_activities || []);
+            setCutSuggestionsList(response.cut_suggestions_list || []);
+            setOcpt(response.OCPT || []);
+            setIsPerfectlyCut(response.is_perfectly_cut || true);
+            setTotalEdgesRemoved(response.total_edges_removed || []);
+            setTotalEdgesAdded(response.total_edges_added || []);
+            setCostToAddEdges(response.cost_to_add_edges || {});
+            setPrecision(response.precision || 0);
+            setFitness(response.fitness || 0);
+            setFScore(response.f_score || 0);
+        })
+        .catch(err => {
+            console.error('Error modifying node:', err);
+        })
+        .finally(() => {
+            setIsLoading(false);
+        });
+    }
+
     return (
         <div>
             <div className='home-page-wrapper'>
@@ -126,7 +168,7 @@ export default function HomePage() {
                         ) : (
                             <div>
                                 <div className="process-tree-title">TreeGen</div>
-                                <TreeView data={ocpt} />
+                                <TreeView data={ocpt} modifyNode={modifyNode} />
                                 <div className='cut-suggestions-wrapper'>
                                     {cutSuggestionsList.cuts && cutSuggestionsList.cuts.map((cutSuggestion, index) => (
                                         <CutSuggestion
