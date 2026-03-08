@@ -9,6 +9,7 @@ export default function UploadFile({ onUploadSuccess, uploadUrl = 'http://localh
     const [uploading, setUploading] = useState(false);
     const [uploadStatus, setUploadStatus] = useState('');
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [frequencyThreshold, setFrequencyThreshold] = useState('0.00');
     const fileInputRef = useRef(null);
     const navigate = useNavigate();
 
@@ -99,9 +100,9 @@ export default function UploadFile({ onUploadSuccess, uploadUrl = 'http://localh
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
-                timeout: 600000, // 10 minutes timeout for very large files
-                maxContentLength: 200 * 1024 * 1024, // 200MB max
-                maxBodyLength: 200 * 1024 * 1024, // 200MB max
+                timeout: 1800000, // 30 minutes timeout for very large files
+                maxContentLength: 2048 * 1024 * 1024, // 2GB max
+                maxBodyLength: 2048 * 1024 * 1024, // 2GB max
                 onUploadProgress: (progressEvent) => {
                     const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                     const uploadedMB = (progressEvent.loaded / (1024 * 1024)).toFixed(1);
@@ -135,7 +136,7 @@ export default function UploadFile({ onUploadSuccess, uploadUrl = 'http://localh
             }
             
             // Navigate to /file/{filename} after successful upload
-            navigate(`/file/${filename}`);
+            navigate(`/file/${filename}?n=${frequencyThreshold}`);
         } catch (error) {
             const endTime = Date.now();
             const uploadTimeSeconds = ((endTime - startTime) / 1000).toFixed(1);
@@ -180,7 +181,7 @@ export default function UploadFile({ onUploadSuccess, uploadUrl = 'http://localh
 
     return (
         <div>
-            <div className="process-tree-title">TreeGen</div>
+            <div className="process-tree-title">OCPTreeGen</div>
             <div className="upload-file-container">
                 <div className="upload-file-header">
                     <h2>📁 Upload OCEL 2.0 event logs file</h2>
@@ -248,6 +249,24 @@ export default function UploadFile({ onUploadSuccess, uploadUrl = 'http://localh
                     {uploadStatus}
                 </div>
             )}
+
+            <div style={{ margin: '20px 0', textAlign: 'center' }}>
+                <label style={{ marginRight: '10px', fontWeight: 'bold' }} title="Frequencies below this value will be removed">Noise Reduction Threshold:</label>
+                <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="1"
+                    value={frequencyThreshold}
+                    onChange={(e) => setFrequencyThreshold(e.target.value)}
+                    style={{ 
+                        padding: '8px', 
+                        borderRadius: '4px', 
+                        border: '1px solid #ccc',
+                        width: '100px'
+                    }}
+                />
+            </div>
 
             <div className="upload-actions">
                 <button 

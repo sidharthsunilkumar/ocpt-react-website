@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import './HomePage.css';
 import DirectedGraph from './DirectedGraph';
 import DirectedGraphV2 from './DirectedGraphV2';
@@ -17,6 +17,9 @@ import Loading from './Loading';
 
 export default function HomePage() {
     const { name: filename } = useParams();
+    const location = useLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const frequencyThreshold = queryParams.get('n') || 0;
 
     const [isLoading, setIsLoading] = useState(true);
     const [dfg, setDfg] = useState({ nodes: [], edges: [] });
@@ -34,10 +37,11 @@ export default function HomePage() {
     const [precision, setPrecision] = useState(0);
     const [fitness, setFitness] = useState(0);
     const [fScore, setFScore] = useState(0);
+    const [leafData, setLeafData] = useState([]);
 
     useEffect(() => {
         console.log("Fetching graph data from server...");
-        axios.get(`http://localhost:1080/${filename}`)
+        axios.get(`http://localhost:1080/${filename}?n=${frequencyThreshold}`)
             .then(response => {
                 console.log(response.data);
                 const nodesArray = Object.values(response.data.dfg.nodes || []);
@@ -54,6 +58,7 @@ export default function HomePage() {
                 setPrecision(response.data.precision || 0);
                 setFitness(response.data.fitness || 0);
                 setFScore(response.data.f_score || 0);
+                setLeafData(response.data.leaf_data || []);
             })
             .catch(err => {
                 console.error("Error fetching graph data:", err);
@@ -61,6 +66,7 @@ export default function HomePage() {
             .finally(() => {
                 setIsLoading(false);
                 console.log("ocpt data:", ocpt);
+                console.log("leaf data:", leafData);
             });
     }, [filename]);
 
@@ -79,7 +85,8 @@ export default function HomePage() {
             total_edges_removed: totalEdgesRemoved,
             total_edges_added: totalEdgesAdded,
             edge_modifications: edgeModifications,
-            cost_to_add_edges: costToAddEdges
+            cost_to_add_edges: costToAddEdges,
+            leaf_data: leafData
         })
         .then(res => {
             console.log('Cut selected POST response:', res.data);
@@ -99,6 +106,7 @@ export default function HomePage() {
             setPrecision(response.precision || 0);
             setFitness(response.fitness || 0);
             setFScore(response.f_score || 0);
+            setLeafData(response.leaf_data || []);
             console.log("ocpt data:", response.OCPT);
         })
         .catch(err => {
@@ -130,7 +138,8 @@ export default function HomePage() {
             total_edges_removed: totalEdgesRemoved,
             total_edges_added: totalEdgesAdded,
             edge_modifications: edgeModifications,
-            cost_to_add_edges: costToAddEdges
+            cost_to_add_edges: costToAddEdges,
+            leaf_data: leafData
         })
         .then(res => {
             console.log('Modify node POST response:', res.data);
@@ -146,6 +155,7 @@ export default function HomePage() {
             setTotalEdgesRemoved(response.total_edges_removed || []);
             setTotalEdgesAdded(response.total_edges_added || []);
             setCostToAddEdges(response.cost_to_add_edges || {});
+            setLeafData(response.leaf_data || []);
             setPrecision(response.precision || 0);
             setFitness(response.fitness || 0);
             setFScore(response.f_score || 0);
@@ -167,8 +177,8 @@ export default function HomePage() {
                             <Ddfg dfg={dfgGraphSelected} onBack={handleBackToCutSuggestions} startActivities={startActivities} endActivities={endActivities} />
                         ) : (
                             <div>
-                                <div className="process-tree-title">TreeGen</div>
-                                <TreeView data={ocpt} modifyNode={modifyNode} />
+                                <div className="process-tree-title">OCPTreeGen</div>
+                                <TreeView data={ocpt} leafData={leafData} modifyNode={modifyNode} />
                                 <div className='cut-suggestions-wrapper'>
                                     {cutSuggestionsList.cuts && cutSuggestionsList.cuts.map((cutSuggestion, index) => (
                                         <CutSuggestion

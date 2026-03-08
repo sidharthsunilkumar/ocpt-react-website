@@ -6,13 +6,40 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Position,
-  Handle
+  Handle,
+  useReactFlow
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import './HomePage.css';
 
 // Custom node component for different node types
-const CustomNode = ({ data }) => {
+const CustomNode = ({ id, data }) => {
+  const [showTooltip, setShowTooltip] = React.useState(false);
+  const { setNodes } = useReactFlow();
+
+  const handleMouseEnter = () => {
+    const isActivity = !['sequence', 'parallel', 'exclusive', 'redo', 'tau', 'flower'].includes(data.originalLabel);
+    if (isActivity) {
+      setShowTooltip(true);
+      setNodes((nodes) => nodes.map((n) => {
+        if (n.id === id) {
+          return { ...n, zIndex: 1000 };
+        }
+        return n;
+      }));
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setShowTooltip(false);
+    setNodes((nodes) => nodes.map((n) => {
+      if (n.id === id) {
+        return { ...n, zIndex: 0 };
+      }
+      return n;
+    }));
+  };
+
   const getNodeStyle = (label) => {
     switch (label) {
       case 'sequence':
@@ -45,10 +72,52 @@ const CustomNode = ({ data }) => {
   };
 
   const isFlower = data.originalLabel === 'flower';
+  const isActivity = !['sequence', 'parallel', 'exclusive', 'redo', 'tau', 'flower'].includes(data.originalLabel);
   const style = getNodeStyle(data.originalLabel);
+  const leafDetails = data.leafDetails;
+
+  const renderLeafDetails = () => {
+    if (!leafDetails) return <div>No details available</div>;
+
+    const objectMap = {};
+    Object.entries(leafDetails).forEach(([category, items]) => {
+      if (Array.isArray(items)) {
+        items.forEach(item => {
+          if (!objectMap[item]) objectMap[item] = [];
+          objectMap[item].push(category);
+        });
+      }
+    });
+
+    const entries = Object.entries(objectMap);
+    if (entries.length === 0) return <div>No details available</div>;
+
+    return (
+      <div style={{ textAlign: 'left' }}>
+        {entries.map(([item, categories]) => {
+          const filteredCategories = categories
+            .filter(c => c !== 'rel')
+            .map(c => {
+              if (c === 'div') return 'Divergent';
+              if (c === 'con') return 'Convergent';
+              if (c === 'def') return 'Deficient';
+              return c;
+            });
+          
+          return (
+            <div key={item}>
+               {item}{filteredCategories.length > 0 ? ` (${filteredCategories.join(', ')})` : ''}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       style={{
         ...style,
         padding: '10px',
@@ -60,9 +129,29 @@ const CustomNode = ({ data }) => {
         fontWeight: 'bold',
         position: 'relative',
         wordWrap: 'break-word',
-        overflow: 'hidden'
+        overflow: 'visible'
       }}
     >
+      {showTooltip && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: '#f0f0f0',
+          color: 'black',
+          border: '1px solid black',
+          padding: '5px 10px',
+          borderRadius: '8px',
+          fontSize: '12px',
+          whiteSpace: 'nowrap',
+          zIndex: 1000,
+          pointerEvents: 'none',
+          marginTop: '5px'
+        }}>
+          {renderLeafDetails()}
+        </div>
+      )}
       <Handle
         type="target"
         position={Position.Top}
@@ -97,11 +186,14 @@ const nodeTypes = {
   custom: CustomNode,
 };
 
-export default function TreeView({ data, modifyNode }) {
+export default function TreeView({ data, leafData, modifyNode }) {
   const [nodeHierarchy, setNodeHierarchy] = React.useState({});
 
-  const transformToReactFlowFormat = (ocptData) => {
-    if (!ocptData || !ocptData.length) return { nodes: [], edges: [], hierarchy: {} };
+  const transformToReactFlowFormat = (inputData, inputLeafData) => {
+    const leafDetailsData = inputLeafData || inputData?.leafData || {};
+    const treeData = Array.isArray(inputData) ? inputData : (inputData?.OCPT || inputData?.tree || []);
+
+    if (!treeData || !treeData.length) return { nodes: [], edges: [], hierarchy: {} };
 
     const nodes = [];
     const edges = [];
@@ -156,6 +248,7 @@ export default function TreeView({ data, modifyNode }) {
             children: childLabels,
             position: node.position || null,
             originalId: node.id,
+            leafDetails: null // Flower has no leaf data
           },
           sourcePosition: Position.Bottom,
           targetPosition: Position.Top,
@@ -184,6 +277,7 @@ export default function TreeView({ data, modifyNode }) {
           originalLabel: node.label,
           position: node.position || null,
           originalId: node.id,
+          leafDetails: leafDetailsData[node.label] || null // Inject leaf data
         },
         sourcePosition: Position.Bottom,
         targetPosition: Position.Top,
@@ -266,13 +360,13 @@ export default function TreeView({ data, modifyNode }) {
       return nodes;
     };
 
-    processNode(data[0]);
+    processNode(treeData[0]);
     optimizePositions(nodes, hierarchy);
 
     return { nodes, edges, hierarchy };
   };
 
-  const flowData = useMemo(() => transformToReactFlowFormat(data), [data]);
+  const flowData = useMemo(() => transformToReactFlowFormat(data, leafData), [data, leafData]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);

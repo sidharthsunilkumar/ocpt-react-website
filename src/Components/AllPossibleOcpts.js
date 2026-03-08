@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import './AllPossibleOcpts.css';
 
 export default function AllPossibleOcpts() {
     const [ocptData, setOcptData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const { name: filename } = useParams();
+    const [searchParams] = useSearchParams();
+    const frequencyThreshold = searchParams.get('n');
 
     useEffect(() => {
         const fetchOcptData = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get('http://localhost:1080/all-possible-ocpts');
+                const url = filename === 'all'
+                    ? 'http://localhost:1080/all-possible-ocpts/'
+                    : `http://localhost:1080/all-possible-ocpts/${filename}?n=${frequencyThreshold}`;
+                const response = await axios.get(url);
                 console.log('All Possible OCPTs Data:', response.data);
                 setOcptData(response.data);
                 setError(null);
@@ -24,8 +30,10 @@ export default function AllPossibleOcpts() {
             }
         };
 
-        fetchOcptData();
-    }, []);
+        if (filename && frequencyThreshold) {
+            fetchOcptData();
+        }
+    }, [filename, frequencyThreshold]);
 
     if (loading) {
         return (

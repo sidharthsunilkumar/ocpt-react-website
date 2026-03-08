@@ -16,10 +16,10 @@ export default function ConformanceCheckBox({ fitness, precision, fScore }) {
                     <div className="metric-label">Precision</div>
                     <div className="metric-value">{precision.toFixed(4)}</div>
                 </div>
-                <div className="metric-item">
+                {/* <div className="metric-item">
                     <div className="metric-label">F-Score</div>
                     <div className="metric-value">{fScore.toFixed(4)}</div>
-                </div>
+                </div> */}
             </div>
         </div>
     );
